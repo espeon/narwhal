@@ -17,9 +17,9 @@ body:json {
     "name": "whoami-narwhal-test",
     "config": {
       "port_bindings": {
-        "80": [
-          8081
-        ]
+        // host:container
+        // aka port you use to access:the port you specify in the dockerfile
+        "8081": [80]
       },
       "resources": {
         // in bytes

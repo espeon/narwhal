@@ -41,7 +41,8 @@ func NewNarwhalService() Service {
 func (s DockerService) List(ctx context.Context) ([]types.Container, error) {
 	containers, err := s.cli.ContainerList(context.Background(), container.ListOptions{})
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "Error listing containers:", err.Error())
+		return nil, fmt.Errorf("%s", err.Error())
 	}
 
 	return containers, nil
@@ -51,7 +52,8 @@ func (s DockerService) List(ctx context.Context) ([]types.Container, error) {
 func (s DockerService) Get(ctx context.Context, id string) (types.ContainerJSON, error) {
 	container, err := s.cli.ContainerInspect(ctx, id)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "Error getting container:", err.Error())
+		return types.ContainerJSON{}, fmt.Errorf("%s", err.Error())
 	}
 	return container, nil
 }
@@ -62,7 +64,7 @@ func createPortBindings(ports map[int][]int) nat.PortMap {
 	for hostPort, containerPorts := range ports {
 		for _, containerPort := range containerPorts {
 			port := nat.Port(fmt.Sprintf("%d/tcp", containerPort))
-			portMap[port] = []nat.PortBinding{{HostIP: "0.0.0.0", HostPort: fmt.Sprintf("%d", hostPort)}}
+			portMap[port] = []nat.PortBinding{{HostIP: "", HostPort: fmt.Sprintf("%d", hostPort)}}
 		}
 	}
 
@@ -78,13 +80,11 @@ func (s DockerService) CreateSimple(ctx context.Context, req model.CreateSimpleC
 	}
 
 	bindings := createPortBindings(req.Host.PortBindings)
-	println(bindings["8080/tcp"])
 	hostConfig := container.HostConfig{
 		PortBindings: bindings,
 		Resources:    *req.Host.Resources,
 		AutoRemove:   req.Host.AutoRemove,
 	}
-	println("ball")
 
 	// pull image if necessary
 	if _, _, err := s.cli.ImageInspectWithRaw(ctx, req.Image); err != nil {
@@ -123,13 +123,15 @@ func (s DockerService) CreateSimple(ctx context.Context, req model.CreateSimpleC
 func (s DockerService) Create(ctx context.Context, req model.CreateContainerRequest) error {
 	_, err := s.cli.ContainerCreate(ctx, &req.Config, &req.Host, &req.Network, nil, req.Name)
 	if err != nil {
-		panic(err)
+		// report error
+		fmt.Fprintln(os.Stderr, "Error creating container:", err.Error())
+		return fmt.Errorf("%s", err.Error())
 	}
 	return nil
 }
 
 func (s DockerService) Start(ctx context.Context, id string) error {
-	err := s.cli.ContainerStart(ctx, id, types.ContainerStartOptions{})
+	err := s.cli.ContainerStart(ctx, id, container.StartOptions{})
 	if err != nil {
 		return fmt.Errorf("%s", err.Error())
 	}
