@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/docker/docker/api/types"
@@ -17,6 +18,7 @@ type Service interface {
 	Get(ctx context.Context, id string) (types.ContainerJSON, error)
 	Create(ctx context.Context, req model.CreateContainerRequest) error
 	CreateSimple(ctx context.Context, req model.CreateSimpleContainerRequest) (container.CreateResponse, error)
+	Start(ctx context.Context, id string) error
 	Stop(ctx context.Context, id string) error
 	Remove(ctx context.Context, id string, force bool, removeVolumes bool) error
 }
@@ -83,6 +85,22 @@ func (s DockerService) CreateSimple(ctx context.Context, req model.CreateSimpleC
 		AutoRemove:   req.Host.AutoRemove,
 	}
 	println("ball")
+
+	// pull image if necessary
+	if _, _, err := s.cli.ImageInspectWithRaw(ctx, req.Image); err != nil {
+		println("pulling image")
+		reader, err := s.cli.ImagePull(ctx, req.Image, types.ImagePullOptions{})
+		if err != nil {
+			// report error
+			fmt.Fprintln(os.Stderr, "Error pulling image:", err.Error())
+			return container.CreateResponse{}, fmt.Errorf("%s", err.Error())
+		}
+		defer reader.Close()
+		io.Copy(os.Stdout, reader)
+
+		println("pulled image")
+	}
+
 	res, err := s.cli.ContainerCreate(ctx, &config, &hostConfig, nil, nil, req.Name)
 	if err != nil {
 		// report error

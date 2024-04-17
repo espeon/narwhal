@@ -22,10 +22,11 @@ func NarwhalHandler(e *echo.Echo, ur service.Service) {
 
 	e.POST("/containers/create_simple", h.CreateContainerSimple)
 	e.POST("/containers/create", h.CreateContainer)
-
 	e.GET("/containers/:id", h.GetContainers)
 	e.GET("/containers/:id/stop", h.StopContainer)
+	e.GET("/containers/:id/start", h.StartContainer)
 	e.DELETE("/containers/:id", h.RemoveContainer)
+
 }
 
 func (h *Handler) ListContainers(c echo.Context) error {
@@ -80,6 +81,17 @@ func (h *Handler) CreateContainer(c echo.Context) error {
 func (h *Handler) StopContainer(c echo.Context) error {
 	id := c.Param("id")
 	if err := h.svc.Stop(c.Request().Context(), id); err != nil {
+		// log error
+		fmt.Fprintln(os.Stderr, err.Error())
+		// return error
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	return c.JSON(http.StatusOK, id)
+}
+
+func (h *Handler) StartContainer(c echo.Context) error {
+	id := c.Param("id")
+	if err := h.svc.Start(c.Request().Context(), id); err != nil {
 		// log error
 		fmt.Fprintln(os.Stderr, err.Error())
 		// return error
