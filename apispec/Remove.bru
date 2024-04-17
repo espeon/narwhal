@@ -1,0 +1,15 @@
+meta {
+  name: Remove
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{base_endpoint}}/containers/whoami-narwhal-test?force=true
+  body: none
+  auth: none
+}
+
+query {
+  force: true
+}

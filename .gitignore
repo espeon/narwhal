@@ -19,5 +19,7 @@
 
 # !Makefile
 
+!/apispec/*
+
 # ...even if they are in subdirectories
 !*/
