@@ -20,7 +20,7 @@ func NarwhalHandler(e *echo.Echo, ur service.Service) {
 	h := &Handler{
 		svc: ur,
 	}
-	e.GET("/containers/list", h.ListContainers)
+	e.GET("/containers", h.ListContainers)
 
 	e.POST("/containers/create_simple", h.CreateContainerSimple)
 	e.POST("/containers/create", h.CreateContainer)
