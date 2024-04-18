@@ -2,8 +2,10 @@ package handler
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"nat.vg/narwhal/internal/model"
@@ -26,6 +28,8 @@ func NarwhalHandler(e *echo.Echo, ur service.Service) {
 	e.GET("/containers/:id/stop", h.StopContainer)
 	e.GET("/containers/:id/start", h.StartContainer)
 	e.DELETE("/containers/:id", h.RemoveContainer)
+
+	e.GET("/containers/:id/logs", h.GetContainerLogs)
 
 }
 
@@ -117,4 +121,32 @@ func (h *Handler) RemoveContainer(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 	return c.JSON(http.StatusOK, id)
+}
+
+func (h *Handler) GetContainerLogs(c echo.Context) error {
+	id := c.Param("id")
+	// to int
+	lines, err := strconv.Atoi(c.QueryParam("lines"))
+	if err != nil {
+		lines = 50
+	}
+	since := c.QueryParam("since")
+	stream := c.QueryParam("stream") == "true"
+
+	logs, err := h.svc.GetLogs(c.Request().Context(), id, lines, since, stream)
+	if err != nil {
+		// log error
+		fmt.Fprintln(os.Stderr, err.Error())
+		// return error
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	defer logs.Close()
+	_, err = io.Copy(c.Response().Writer, logs)
+	if err != nil {
+		// log error
+		fmt.Fprintln(os.Stderr, err.Error())
+		// return error
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+	return c.Request().Body.Close()
 }

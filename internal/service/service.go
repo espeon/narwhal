@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -21,6 +22,7 @@ type Service interface {
 	Start(ctx context.Context, id string) error
 	Stop(ctx context.Context, id string) error
 	Remove(ctx context.Context, id string, force bool, removeVolumes bool) error
+	GetLogs(ctx context.Context, id string, lines int, since string, stream bool) (io.ReadCloser, error)
 }
 
 type DockerService struct {
@@ -160,4 +162,18 @@ func (s DockerService) Remove(ctx context.Context, id string, force bool, remove
 		return fmt.Errorf("%s", err.Error())
 	}
 	return nil
+}
+
+func (s DockerService) GetLogs(ctx context.Context, id string, lines int, since string, stream bool) (io.ReadCloser, error) {
+	opts := container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     stream,
+		Tail:       strconv.Itoa(lines),
+		Since:      since,
+		Details:    true,
+		Timestamps: true,
+	}
+	// get logs
+	return s.cli.ContainerLogs(ctx, id, opts)
 }

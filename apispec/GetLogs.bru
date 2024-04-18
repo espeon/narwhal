@@ -1,0 +1,11 @@
+meta {
+  name: GetLogs
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{base_endpoint}}/containers/whoami-narwhal-test/logs
+  body: none
+  auth: none
+}
