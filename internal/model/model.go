@@ -6,6 +6,31 @@ import (
 	"github.com/docker/docker/api/types/network"
 )
 
+type NodeResourceUsage struct {
+	RamUsage float64 `json:"ram_usage"`
+	CpuUsage float64 `json:"cpu_usage"`
+	RamTotal float64 `json:"ram_total"`
+	CpuTotal float64 `json:"cpu_total"`
+}
+
+type BasicContainerStatistics struct {
+	Name          string              `json:"name"`
+	Id            string              `json:"id"`
+	Image         string              `json:"image"`
+	ResourceUsage *BasicResourceUsage `json:"resource_usage"`
+	RamTotal      float64             `json:"ram_total"`
+	CpuTotal      float64             `json:"cpu_total"`
+	//Port       int     `json:"port"`
+	StartCmd  string `json:"start_cmd"`
+	IsRunning bool   `json:"is_running"`
+}
+
+type BasicResourceUsage struct {
+	//DiskUsage  float64 `json:"disk_usage"`
+	RamUsage float64 `json:"ram_usage"`
+	CpuUsage float64 `json:"cpu_usage"`
+}
+
 type CreateContainerRequest struct {
 	Name    string
 	Config  container.Config

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -17,6 +18,7 @@ import (
 type Service interface {
 	List(ctx context.Context) ([]types.Container, error)
 	Get(ctx context.Context, id string) (types.ContainerJSON, error)
+	GetStats(ctx context.Context, id string) (types.StatsJSON, error)
 	Create(ctx context.Context, req model.CreateContainerRequest) error
 	CreateSimple(ctx context.Context, req model.CreateSimpleContainerRequest) (container.CreateResponse, error)
 	Start(ctx context.Context, id string) error
@@ -58,6 +60,21 @@ func (s DockerService) Get(ctx context.Context, id string) (types.ContainerJSON,
 		return types.ContainerJSON{}, fmt.Errorf("%s", err.Error())
 	}
 	return container, nil
+}
+
+func (s DockerService) GetStats(ctx context.Context, id string) (types.StatsJSON, error) {
+	stats, err := s.cli.ContainerStats(context.Background(), id, false)
+	if err != nil {
+		panic(err)
+	}
+	defer stats.Body.Close()
+
+	// Process the container stats
+	var v types.StatsJSON
+	if err := json.NewDecoder(stats.Body).Decode(&v); err != nil {
+		panic(err)
+	}
+	return v, nil
 }
 
 func createPortBindings(ports map[int][]int) nat.PortMap {
