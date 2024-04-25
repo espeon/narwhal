@@ -2,12 +2,13 @@ package handler
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/labstack/echo/v4"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
@@ -32,7 +33,6 @@ func NarwhalHandler(e *echo.Echo, ur service.Service) {
 	e.GET("/containers/:id/stop", h.StopContainer)
 	e.GET("/containers/:id/start", h.StartContainer)
 	e.DELETE("/containers/:id", h.RemoveContainer)
-
 	e.GET("/containers/:id/logs", h.GetContainerLogs)
 
 }
@@ -41,10 +41,32 @@ func (h *Handler) GetNodeResourceUsage(c echo.Context) error {
 	// get the resource usage
 	v, _ := mem.VirtualMemory()
 	cCounts, _ := cpu.Counts(true)
-	c, _ :=  cpu.Percent(time.Duration(1)*time.Second), true)
+	cpu, _ := cpu.Percent(time.Duration(1)*time.Second, true)
 
-	// return an error
-	return echo.NewHTTPError(http.StatusNotImplemented, fmt.Errorf("not implemented"))
+	// get average of all cpu cores
+	avgCpu := 0.0
+	for _, v := range cpu {
+		avgCpu += v
+	}
+	avgCpu /= float64(len(cpu))
+
+	// get running containers
+	containers, err := h.svc.List(c.Request().Context())
+	if err != nil {
+		// log error
+		fmt.Fprintln(os.Stderr, err.Error())
+		// return error
+		return echo.NewHTTPError(http.StatusBadRequest, err)
+	}
+
+	// return the resource usage
+	return c.JSON(http.StatusOK, model.NodeResourceUsage{
+		RamUsage:          v.UsedPercent,
+		CpuUsage:          avgCpu,
+		RamTotal:          float64(v.Total),
+		CpuTotal:          float64(cCounts),
+		RunningContainers: len(containers),
+	})
 }
 
 func (h *Handler) ListContainers(c echo.Context) error {
@@ -181,7 +203,7 @@ func (h *Handler) GetContainerLogs(c echo.Context) error {
 	// to int
 	lines, err := strconv.Atoi(c.QueryParam("lines"))
 	if err != nil {
-		lines = 50
+		lines = 150
 	}
 	since := c.QueryParam("since")
 	stream := c.QueryParam("stream") == "true"
@@ -194,7 +216,7 @@ func (h *Handler) GetContainerLogs(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err)
 	}
 	defer logs.Close()
-	_, err = io.Copy(c.Response().Writer, logs)
+	_, err = stdcopy.StdCopy(c.Response().Writer, c.Response().Writer, logs)
 	if err != nil {
 		// log error
 		fmt.Fprintln(os.Stderr, err.Error())

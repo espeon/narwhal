@@ -7,10 +7,11 @@ import (
 )
 
 type NodeResourceUsage struct {
-	RamUsage float64 `json:"ram_usage"`
-	CpuUsage float64 `json:"cpu_usage"`
-	RamTotal float64 `json:"ram_total"`
-	CpuTotal float64 `json:"cpu_total"`
+	RamUsage          float64 `json:"ram_usage"`
+	CpuUsage          float64 `json:"cpu_usage"`
+	RamTotal          float64 `json:"ram_total"`
+	CpuTotal          float64 `json:"cpu_total"`
+	RunningContainers int     `json:"running_containers"`
 }
 
 type BasicContainerStatistics struct {

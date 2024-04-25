@@ -189,7 +189,7 @@ func (s DockerService) GetLogs(ctx context.Context, id string, lines int, since 
 		Tail:       strconv.Itoa(lines),
 		Since:      since,
 		Details:    true,
-		Timestamps: true,
+		Timestamps: false,
 	}
 	// get logs
 	return s.cli.ContainerLogs(ctx, id, opts)
